@@ -6,6 +6,7 @@ import Navbar from '@/components/navbar';
 import BottomNav from '@/components/bottomNav';
 import GameCard from '@/components/Gamecard';
 import { getAllGenres, getGamesByGenre } from '@/lib/rawg';
+import Footer from '@/components/footer';
 
 export default function GenresPage() {
   const [genres, setGenres] = useState([]);
@@ -15,6 +16,8 @@ export default function GenresPage() {
   const [loadingGames, setLoadingGames] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+    const [totalGames, setTotalGames] = useState(0);
 
   useEffect(() => {
     loadGenres();
@@ -47,27 +50,49 @@ export default function GenresPage() {
 
 
   useEffect(() => {
-    // Load games whenever selected genres change
     if (selectedGenres.length > 0) {
-      loadGamesBySelectedGenres();
+      setCurrentPage(1);
+      loadGamesBySelectedGenres(1);
     } else {
       setGames([]);
+      setTotalGames(0);
     }
   }, [selectedGenres]);
 
-  async function loadGamesBySelectedGenres() {
+  async function loadGamesBySelectedGenres(page = 1) {
     setLoadingGames(true);
     try {
       // Create a comma-separated list of genre IDs
       const genreIds = selectedGenres.map(g => g.id).join(',');
-      const data = await getGamesByGenre(genreIds);
+      const data = await getGamesByGenre(genreIds, page);
       setGames(data.results);
+      setTotalGames(data.count);
+      setCurrentPage(page);
     } catch (error) {
       console.error('Error loading games:', error);
     } finally {
       setLoadingGames(false);
     }
   }
+
+  const totalPages = Math.ceil(totalGames/12);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
+
+   async function handleNextPage() {
+    if (hasNextPage) {
+      await loadGamesBySelectedGenres(currentPage + 1);
+      window.scrollTo(0, 0);
+    }
+  }
+
+  async function handlePrevPage() {
+    if (hasPrevPage) {
+      await loadGamesBySelectedGenres(currentPage - 1);
+      window.scrollTo(0, 0);
+    }
+  }
+
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -124,7 +149,7 @@ export default function GenresPage() {
         </div>
 
         <h2 className="text-2xl my-5 text-white text-4xl font-bold">
-          {games.length} Games found
+          {totalGames} Games found
         </h2>
 
         {/* Games Section */}
@@ -135,30 +160,46 @@ export default function GenresPage() {
                 <p className="text-xl text-gray-500">Loading games...</p>
               </div>
             )}
-            
-
-            <div className="lfex justify-center items-center gap-6 mt-12 mb-8">
-              <button onClick={handlePrev} disabled={!hasPreV}
-                className={`flex items-center justify-center w-12 h-12 rounded-lg transition 
-                ${
-                  hasPrevPage
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-            </div>
 
             {!loadingGames && games.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {games.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {games.map((game) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </div>
+                <div className="flex justify-cetner items-center gap-6 mt-12 mb-8">
+                  <button onClick={handlePrevPage} disabled={!hasPrevPage}
+                    className={`flex items-center justify-center w-12 h-12 rounded-lg transition ${
+                      hasPrevPage
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <span className="text-white font-bold text-lg">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={handleNextPage}
+                    disabled={!hasNextPage}
+                    className={`flex items-center justify-center w-12 h-12 rounded-lg transition ${
+                      hasNextPage
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </>
             )}
 
             {!loadingGames && games.length === 0 && (
@@ -170,6 +211,7 @@ export default function GenresPage() {
         )}
       </main>
       <BottomNav />
+      <Footer />
     </>
   );
 }
