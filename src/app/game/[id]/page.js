@@ -17,9 +17,12 @@ export default function GameDetailPage() {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isDescriptionClamped, setIsDescriptionClamped] = useState(false);
   const descriptionRef = useRef(null);
+
+  const THUMBNAILS_PER_PAGE = 6;
 
   const esrbLabel = (name) => {
     const map = {
@@ -50,7 +53,7 @@ export default function GameDetailPage() {
       <img
         src={svgPath}
         alt={`ESRB ${name}`}
-        className=" py-3 px-3 h-auto w-auto"
+        className=" py-2 h-auto w-auto"
       />
     );
   };
@@ -81,6 +84,12 @@ export default function GameDetailPage() {
     if (Number.isNaN(date.getTime())) return dateStr;
     return new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', year: 'numeric'}).format(date);
   }
+  
+  const getReleaseLabel = (released, tba) => {
+    if (tba || !released) return 'TBA';
+    return formatReleaseDate(released);
+  };
+
 
   const formatDescription = (text) => {
     if (!text) return '';
@@ -139,14 +148,14 @@ export default function GameDetailPage() {
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <span className="text-xs bg-gray-200 text-gray-800 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+            <span className="text-xs bg-gray-600 text-gray-200 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer hover:bg-gray-500 transition">
               +{extraCount}
             </span>
             {showTooltip && (
-              <div className="absolute bottom-full right-0 mb-2 bg-white text-gray-800 rounded-lg shadow-lg p-3 min-w-max z-50 border border-gray-200">
-                <div className="text-xs font-semibold mb-2 text-gray-900">Others:</div>
+              <div className="absolute bottom-full right-0 mb-2 bg-gray-700 text-gray-200 rounded-lg shadow-lg p-3 min-w-max z-50 border border-gray-600">
+                <div className="text-xs font-semibold mb-2 text-white">Others:</div>
                 {items.slice(1).map((item) => (
-                  <div key={item.id} className="text-xs py-1 text-gray-700">
+                  <div key={item.id} className="text-xs py-1 text-gray-300">
                     {item.name}
                   </div>
                 ))}
@@ -218,7 +227,7 @@ export default function GameDetailPage() {
           setMobileMenuOpen={setMobileMenuOpen}
         />
         <main className="max-w-7xl min-h-screen mx-auto px-3 sm:px-6 lg:px-8 py-12 pt-24 flex items-center justify-center">
-          <p className="text-center text-xl text-gray-500">Loading game details...</p>
+          <p className="text-center text-xl text-gray-400">Loading game details...</p>
         </main>
         <Footer />
       </>
@@ -228,7 +237,7 @@ export default function GameDetailPage() {
   if (!game) {
     return (
       <main className="max-w-7xl min-h-screen mx-auto px-3 sm:px-6 lg:px-8 py-12">
-        <p className="text-center text-xl text-gray-500">Game not found</p>
+        <p className="text-center text-xl text-gray-400">Game not found</p>
       </main>
     );
   }
@@ -264,15 +273,19 @@ export default function GameDetailPage() {
           </div>
 
           {/* Screenshot Thumbnails with Navigation */}
-          {screenshots.length > 1 && (
+          {screenshots.length > 1 && (() => {
+            const totalPages = Math.ceil(screenshots.length / THUMBNAILS_PER_PAGE);
+            const startIndex = currentPage * THUMBNAILS_PER_PAGE;
+            const endIndex = Math.min(startIndex + THUMBNAILS_PER_PAGE, screenshots.length);
+            const visibleScreenshots = screenshots.slice(startIndex, endIndex);
+
+            return (
             <div className="flex items-center justify-center gap-1 sm:gap-3 mb-8">
               {/* Previous Arrow */}
               <button
-                onClick={() => setCurrentImageIndex((prev) => 
-                  prev === 0 ? screenshots.length - 1 : prev - 1
-                )}
+                onClick={() => setCurrentPage((prev) => prev === 0 ? totalPages - 1 : prev - 1)}
                 className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
-                aria-label="Previous image"
+                aria-label="Previous page"
               >
                 <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -280,54 +293,55 @@ export default function GameDetailPage() {
               </button>
 
               {/* Thumbnails */}
-              <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
-                {screenshots.map((screenshot, index) => (
+              <div className="flex gap-1 sm:gap-2">
+                {visibleScreenshots.map((screenshot, idx) => {
+                  const actualIndex = startIndex + idx;
+                  return (
                   <button
                     key={screenshot.id}
-                    onClick={() => setCurrentImageIndex(index)}
+                    onClick={() => setCurrentImageIndex(actualIndex)}
                     className={`flex-shrink-0 w-16 h-10 sm:w-24 sm:h-16 rounded-lg overflow-hidden border-2 transition ${
-                      currentImageIndex === index 
+                      currentImageIndex === actualIndex
                         ? 'border-blue-500 shadow-lg' 
-                        : 'border-gray-300 hover:border-gray-400'
+                        : 'border-gray-600 hover:border-gray-500'
                     }`}
                   >
                     <img
                       src={screenshot.image}
-                      alt={`Screenshot ${index + 1}`}
+                      alt={`Screenshot ${actualIndex + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
-                ))}
+                );})}
               </div>
 
               {/* Next Arrow */}
               <button
-                onClick={() => setCurrentImageIndex((prev) => 
-                  prev === screenshots.length - 1 ? 0 : prev + 1
-                )}
+                onClick={() => setCurrentPage((prev) => prev === totalPages - 1 ? 0 : prev + 1)}
                 className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
-                aria-label="Next image"
+                aria-label="Next page"
               >
                 <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-          )}
+            );
+          })()}
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold pb-4 mb-4 border-b text-black border-gray-400">{game.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold pb-4 mb-4 border-b text-white border-gray-700">{game.name}</h1>
           {/* Description */}
           {game.description_raw && (
             <div className="mb-8">
-              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">About</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-white">About</h2>
               <div className="relative">
                 <div 
                   ref={descriptionRef}
-                  className={`leading-relaxed ${!showFullDescription ? 'line-clamp-6' : ''} text-gray-700`}
+                  className={`leading-relaxed ${!showFullDescription ? 'line-clamp-6' : ''} text-gray-300`}
                 >
                   {formatDescription(game.description_raw).map((paragraph, index) => (
                     isTitle(paragraph) ? (
-                      <h3 key={index} className="text-lg font-bold mb-2 mt-4 first:mt-0 text-black">
+                      <h3 key={index} className="text-lg font-bold mb-2 mt-4 first:mt-0 text-white">
                         {paragraph}
                       </h3>
                     ) : (
@@ -338,7 +352,7 @@ export default function GameDetailPage() {
                   ))}
                 </div>
                 {!showFullDescription && isDescriptionClamped && (
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t pointer-events-none from-white to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t pointer-events-none from-gray-900 to-transparent"></div>
                 )}
               </div>
               {isDescriptionClamped && (
@@ -357,67 +371,67 @@ export default function GameDetailPage() {
           </div>
 
           {/* Game Stats */}
-          <div className="mb-8 rounded-lg p-2 sm:p-4 shadow-lg bg-gray-100">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-black">Ratings</h2>
+          <div className="mb-8 rounded-lg p-2 sm:p-4 shadow-lg bg-gray-800 border border-gray-700">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Ratings</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
               {game.rating && (
-                <div className="p-2 sm:p-3 rounded-lg bg-white">
-                  <div className="h-14 w-14 sm:h-20 sm:w-20 mx-auto flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                <div className="p-2 sm:p-3 rounded-lg bg-gray-700 border border-gray-600">
+                  <div className="h-14 w-14 sm:h-20 sm:w-20 mx-auto flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3 ">
                     <svg className="w-5 h-5 sm:w-8 sm:h-8 text-yellow-400 fill-current flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
-                    <p className="text-2xl sm:text-4xl font-bold text-gray-800">{game.rating.toFixed(1)}/5</p>
+                    <p className="text-2xl sm:text-4xl font-bold text-white">{game.rating.toFixed(1)}/5</p>
                   </div>
-                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">USER RATING</p>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-400">USER RATING</p>
                 </div>
               )}
               {game.reviews_count && (
-                <div className="p-2 sm:p-3 rounded-lg bg-white">
+                <div className="p-2 sm:p-3 rounded-lg bg-gray-700 border border-gray-600">
                   <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3">
-                    <p className="text-2xl sm:text-4xl text-center font-bold text-gray-800">{game.reviews_count}</p>
+                    <p className="text-2xl sm:text-4xl text-center font-bold text-white">{game.reviews_count}</p>
                   </div>
-                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">REVIEWS</p>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-400">REVIEWS</p>
                 </div>
               )}
               {game.metacritic ? (
-                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-white">
+                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-gray-700 border border-gray-600">
                   <div style={{ backgroundColor: MeteColor(game.metacritic) }} className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3">
                     <p className="text-2xl sm:text-3xl text-center font-bold text-white">{game.metacritic}</p>
                   </div>
-                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">METACRITIC</p>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-400">METACRITIC</p>
                 </div>
               ) : (
-                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-white">
-                  <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3 bg-gray-200">
+                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-gray-700">
+                  <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3 bg-gray-600">
                     <p className="text-lg sm:text-xl text-center font-bold text-gray-400">N/A</p>
                   </div>
-                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">METACRITIC</p>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-400">METACRITIC</p>
                 </div>
               )}
             </div>
           </div>
         </div>
         <div className="col-span-1 lg:self-start space-y-4">
-          <div className="rounded-xl shadow-xl px-4 sm:px-5 py-4 sm:py-5 bg-white border border-gray-100">
+          <div className="rounded-xl shadow-xl px-4 sm:px-5 py-4 sm:py-5 bg-gray-800 border border-gray-700">
           {/* Game Title */}
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-3 sm:mb-4 text-black">{game.name}</h1>
-            <button className="bg-gray-900 w-full cursor-pointer py-2 text-white rounded-lg shadow-lg mt-2 mb-4">
+          <h1 className="text-2xl sm:text-3xl font-extrabold mb-3 sm:mb-4 text-white">{game.name}</h1>
+            <button className="bg-white w-full cursor-pointer py-2 text-black rounded-lg shadow-lg mt-2 mb-4">
               Add to Favorites
             </button>
-            <div className="grid grid-cols-3 gap-2 rounded-lg border bg-white border-gray-200">
+            <div className="grid grid-cols-3 gap-2 rounded-lg border bg-gray-700 border-gray-600">
               <div className="col-span-1 ml-3 my-2 flex items-start justify-start">
                 {renderEsrbIcon(game.esrb_rating?.name)}
               </div>
               <div className="col-span-2 mr-3 my-2">
                 {game.esrb_rating && (
-                  <div className="bg-white flex items-center justify-between py-2 border-b border-gray-200">
-                    <span className="text-sm font-bold text-black">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-600">
+                    <span className="text-sm font-bold text-white">
                       {game.esrb_rating.name}
                     </span>
                   </div>
                 )}
                 <div className="pt-2">
-                  <p className="text-sm text-justify text-gray-700">
+                  <p className="text-sm text-justify text-gray-300">
                     {game.esrb_rating?.name ? esrbLabel(game.esrb_rating.name) : 'No rating available'}
                   </p>
                 </div>
@@ -425,24 +439,24 @@ export default function GameDetailPage() {
             </div>
             <div className="my-3 ">
               {/* Metadata */}
-              <div className="flex flex-col gap-1 text-gray-700">
+              <div className="flex flex-col gap-1 text-gray-300">
                 {game.developers?.length > 0 && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                    <span className="font-semibold text-sm text-black">Developer</span>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-600">
+                    <span className="font-semibold text-sm text-white">Developer</span>
                     <PersonTooltip items={game.developers} firstName={game.developers[0].name} />
                   </div>
                 )}
                 {game.publishers?.length > 0 && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-600">
                     <span className="font-semibold text-sm">Publisher</span>
                     <PersonTooltip items={game.publishers} firstName={game.publishers[0].name} />
                   </div>
                 )}
                 {game.released && (
-                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                    <span className="font-semibold text-sm">Released</span> 
+                  <div className="flex items-center justify-between py-2 border-b border-gray-600">
+                    <span className="font-semibold text-sm">Release Date</span> 
                     <span className="text-sm">
-                      {formatReleaseDate(game.released)}
+                      {getReleaseLabel(game.released, game.tba)}
                     </span>
                   </div>
                 )}
@@ -451,12 +465,12 @@ export default function GameDetailPage() {
             {/* Genres */}
             {game.genres?.length > 0 && (
               <div className="my-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">Genres</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Genres</h2>
                 <div className="flex flex-wrap gap-2">
                   {game.genres.map((genre) => (
                     <span
                       key={genre.id}
-                      className="bg-gray-200 px-3 py-1 rounded text-sm"
+                      className="bg-gray-700 px-3 py-1 rounded text-sm text-white"
                     >
                       {genre.name}
                     </span>
@@ -468,12 +482,12 @@ export default function GameDetailPage() {
             {/* Platforms */}
             {game.parent_platforms?.length > 0 && (
               <div className="mb-3">
-                <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">Platforms</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Platforms</h2>
                 <div className="flex flex-wrap gap-2">
                   {game.parent_platforms.map(({ platform }) => (
                     <span
                       key={platform.id}
-                      className="bg-gray-100 px-3 py-1 rounded text-sm"
+                      className="bg-gray-700 px-3 py-1 rounded text-sm text-white"
                     >
                       {platform.name === 'Apple Macintosh' ? 'Mac' : platform.name}
                     </span>
@@ -484,7 +498,7 @@ export default function GameDetailPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="text-lg sm:text-xl font-bold col-span-2">
+            <div className="text-lg sm:text-xl font-bold col-span-2 text-white">
               <p>Where to Play</p>
             </div>
             {/* Store Links */}
@@ -517,7 +531,7 @@ export default function GameDetailPage() {
                   href={storeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full bg-gray-900 hover:bg-gray-800 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                  className="flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-gray-700 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
                 >
                   {icon && <span className="text-white">{icon}</span>}
                   <span>{storeItem.store.name}</span>
@@ -526,7 +540,7 @@ export default function GameDetailPage() {
             })}
 
             <div className='col-span-2'>
-              <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold">
+              <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold text-white">
                 <p>Know more</p>
               </div>
               {/* Reddit Link */}

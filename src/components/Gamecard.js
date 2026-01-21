@@ -65,9 +65,9 @@ export const iconForPlatform = (slug) => platformIcons[normalizePlatform(slug)] 
 export default function GameCard({ game }) {
   return (
     <Link href={`/game/${game.id}`}>
-      <div className="h-full rounded-lg overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer bg-white">
+      <div className="h-full rounded-lg overflow-hidden shadow-lg border border-gray-700 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer bg-gray-800 border border-gray-700\">
         {/* Game Image */}
-        <div className="relative h-48 bg-gray-200">
+        <div className="relative h-48 bg-gray-700">
           {game.background_image ?  (
             <img
               src={game.background_image}
@@ -92,7 +92,7 @@ export default function GameCard({ game }) {
                   return (
                     <span
                       key={`${game.id}-${normalizedSlug}-${index}`}
-                      className="w-4 h-4 rounded-full flex items-center justify-center text-gray-700"
+                      className="w-4 h-4 rounded-full flex items-center justify-center text-gray-300"
                       title={platform?.name}
                       aria-label={platform?.name}
                     >
@@ -103,7 +103,7 @@ export default function GameCard({ game }) {
             </div> 
           )}
 
-          <h3 className="font-bold text-black text-xl mb-2 leading-tight break-words">{game.name}</h3>
+          <h3 className="font-bold text-white text-xl mb-2 leading-tight break-words">{game.name}</h3>
           
 
           {/* Genres */}
@@ -111,7 +111,7 @@ export default function GameCard({ game }) {
             {game.genres?.slice(0, 3).map((genre) => (
               <span
                 key={genre.id}
-                className="text-black text-xs bg-gray-100 px-2 py-1 rounded"
+                className="text-white text-xs bg-gray-700 px-2 py-1 rounded"
               >
                 {genre.name}
               </span>

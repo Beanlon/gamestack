@@ -90,3 +90,15 @@ export async function getGamesByGenre(genreId, page = 1) {
   
   return response.json();
 }
+
+export async function getAllGenres() {
+  const response = await fetch(
+    `${BASE_URL}/genres?key=${API_KEY}&page_size=40`
+  );
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch genres');
+  }
+  
+  return response.json();
+}
