@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { getGameDetails, getGameScreenshots, getGameVideos } from '@/lib/rawg';
+import { iconForPlatform } from '@/components/Gamecard';
 import BottomNav from '@/components/bottomNav';
 import Navbar from '@/components/navbar';
+import Footer from '@/components/footer';
 
 
 export default function GameDetailPage() {
@@ -16,12 +18,14 @@ export default function GameDetailPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isDescriptionClamped, setIsDescriptionClamped] = useState(false);
+  const descriptionRef = useRef(null);
 
   const esrbLabel = (name) => {
     const map = {
       'Everyone': 'Content is suitable for all ages. May contain minmal cartoon, fantasy or mild violcence',
       'Everyone 10+': 'Content for Ages 10 and up. May contain more cartoon, fantasy or mild violence, mild language and/ or minimal themes',
-      'Teen': 'Content for Ages 13 and up. May contain violence, suggestive themes, crude humor, minimal blood and/ or infrequent use of strong language',
+      'Teen': 'Content for Ages 13 and up. May contain violence, crude humor, minimal blood and/ or infrequent use of strong language',
       'Mature': 'Content for Ages 17 and up. May contain intense violence, blood & gore, sexual content and/or strong language',
       'Adults Only': 'Content for Ages 18 and up. May unclude prolonged scenes of intense violence and/or graphic sexual content',
       'Rating Pending': 'Final rating not assigned yet',
@@ -51,6 +55,26 @@ export default function GameDetailPage() {
     );
   };
 
+  const mapStoreToPlatformSlug = (slug = '') => {
+    const lower = slug.toLowerCase();
+    if (lower.includes('steam')) return 'steam';
+    if (lower.includes('gog')) return 'gog';
+    if (lower.includes('epic')) return 'epic';
+    if (lower.includes('playstation') || lower.includes('psn')) return 'playstation';
+    if (lower.includes('xbox') || lower.includes('microsoft')) return 'xbox';
+    if (lower.includes('nintendo')) return 'nintendo';
+    if (lower.includes('apple') || lower.includes('ios')) return 'ios';
+    if (lower.includes('mac')) return 'mac';
+    if (lower.includes('pc') || lower.includes('windows')) return 'pc';
+    return lower;
+  };
+
+  const MeteColor = (rating) => {
+    if (rating >= 75) return '#5ed35e';
+    if (rating >= 50 && rating <= 74) return '#ffc70f';
+    if (rating >= 0 && rating <= 49) return '#ff170f';
+  }
+
   const formatReleaseDate = (dateStr) => {
     if (!dateStr) return `TBA`;
     const date = new Date(dateStr);
@@ -58,15 +82,93 @@ export default function GameDetailPage() {
     return new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', year: 'numeric'}).format(date);
   }
 
-  const truncateDescription = (text, length = 300) => {
+  const formatDescription = (text) => {
     if (!text) return '';
-    if (text.length <= length) return text;
-    return text.substring(0, length) + '...';
-  };
+    
+    // Split by double line breaks or single line breaks
+    let paragraphs = text.split(/\n\n+/);
+    
+    // If no double breaks, try single breaks
+    if (paragraphs.length === 1) {
+      paragraphs = text.split(/\n+/);
+    }
+    
+    // Clean up each paragraph
+    paragraphs = paragraphs
+      .map(p => {
+        // Trim whitespace
+        p = p.trim();
+        // Remove HTML tags
+        p = p.replace(/<[^>]*>/g, '');
+        // Remove markdown symbols (*, _, **, __)
+        p = p.replace(/[\*_]+/g, '');
+        // Remove markdown heading symbols (#)
+        p = p.replace(/^#+\s*/g, '');
+        // Remove extra brackets and braces
+        p = p.replace(/[\[\{\(]+\s*[\]\}\)]+/g, '');
+        // Clean up multiple spaces
+        p = p.replace(/\s+/g, ' ').trim();
+        return p;
+      })
+      .filter(p => p.length > 0);
+    
+    return paragraphs;
+  }
+
+  const isTitle = (text) => {
+    // Check if text looks like a title
+    const wordCount = text.split(/\s+/).length;
+    const hasNumbers = /\d/.test(text);
+    
+    // Titles are usually short (1-5 words), don't have many numbers
+    return wordCount <= 5 && wordCount > 0 && !hasNumbers;
+  }
+
+  const PersonTooltip = ({ items, firstName }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+    const extraCount = items?.length - 1 || 0;
+
+    if (!items || items.length === 0) return null;
+
+    return (
+      <div className="flex items-center gap-1 relative">
+        <span className="text-sm">{firstName}</span>
+        {extraCount > 0 && (
+          <div
+            className="relative"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            <span className="text-xs bg-gray-200 text-gray-800 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition">
+              +{extraCount}
+            </span>
+            {showTooltip && (
+              <div className="absolute bottom-full right-0 mb-2 bg-white text-gray-800 rounded-lg shadow-lg p-3 min-w-max z-50 border border-gray-200">
+                <div className="text-xs font-semibold mb-2 text-gray-900">Others:</div>
+                {items.slice(1).map((item) => (
+                  <div key={item.id} className="text-xs py-1 text-gray-700">
+                    {item.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   useEffect(() => {
-    loadGameDetails();
+  loadGameDetails();
   }, [params.id]);
+
+  useEffect(() => {
+    // Check if description is clamped after game data loads
+    if (descriptionRef.current && game?.description_raw) {
+      const element = descriptionRef.current;
+      setIsDescriptionClamped(element.scrollHeight > element.clientHeight);
+    }
+  }, [game]);
 
   async function loadGameDetails() {
     setLoading(true);
@@ -115,16 +217,17 @@ export default function GameDetailPage() {
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
-        <main className="max-w-7xl min-h-screen mx-auto bg-gray-50 px-3 sm:px-6 lg:px-8 py-12">
+        <main className="max-w-7xl min-h-screen mx-auto px-3 sm:px-6 lg:px-8 py-12 pt-24 flex items-center justify-center">
           <p className="text-center text-xl text-gray-500">Loading game details...</p>
         </main>
+        <Footer />
       </>
     );
   }
 
   if (!game) {
     return (
-      <main className="max-w-7xl min-h-screen mx-auto bg-gray-50 px-3 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl min-h-screen mx-auto px-3 sm:px-6 lg:px-8 py-12">
         <p className="text-center text-xl text-gray-500">Game not found</p>
       </main>
     );
@@ -141,10 +244,10 @@ export default function GameDetailPage() {
           setMobileMenuOpen={setMobileMenuOpen}
         />
       </header>
-      <main className="max-w-7xl grid grid-cols-3 gap-6 min-h-screen mx-auto bg-gray-50 px-3 sm:px-6 lg:px-8 py-8 pt-24">
-        <div className="col-span-2">
+      <main className="max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-screen mx-auto px-3 sm:px-6 lg:px-8 py-8 pt-24">
+        <div className="col-span-1 lg:col-span-2">
           {/* Hero Image/Video */}
-          <div className="relative h-96 rounded-lg overflow-hidden mb-4 shadow-lg bg-black">
+          <div className="relative h-64 sm:h-80 lg:h-96 rounded-lg overflow-hidden mb-4 shadow-lg bg-black">
             {screenshots[currentImageIndex]?.isVideo && screenshots[currentImageIndex]?.videoData ? (
               <video
                 src={screenshots[currentImageIndex]?.videoData}
@@ -162,27 +265,27 @@ export default function GameDetailPage() {
 
           {/* Screenshot Thumbnails with Navigation */}
           {screenshots.length > 1 && (
-            <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="flex items-center justify-center gap-1 sm:gap-3 mb-8">
               {/* Previous Arrow */}
               <button
                 onClick={() => setCurrentImageIndex((prev) => 
                   prev === 0 ? screenshots.length - 1 : prev - 1
                 )}
-                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition"
+                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
                 aria-label="Previous image"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
 
               {/* Thumbnails */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
                 {screenshots.map((screenshot, index) => (
                   <button
                     key={screenshot.id}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden border-2 transition ${
+                    className={`flex-shrink-0 w-16 h-10 sm:w-24 sm:h-16 rounded-lg overflow-hidden border-2 transition ${
                       currentImageIndex === index 
                         ? 'border-blue-500 shadow-lg' 
                         : 'border-gray-300 hover:border-gray-400'
@@ -202,164 +305,259 @@ export default function GameDetailPage() {
                 onClick={() => setCurrentImageIndex((prev) => 
                   prev === screenshots.length - 1 ? 0 : prev + 1
                 )}
-                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition"
+                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
                 aria-label="Next image"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           )}
 
-          <h1 className="text-3xl font-extrabold text-black mb-4">{game.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold pb-4 mb-4 border-b text-black border-gray-400">{game.name}</h1>
           {/* Description */}
           {game.description_raw && (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-black mb-2">About</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">About</h2>
               <div className="relative">
-                <p className={`text-gray-700 leading-relaxed text-justify ${!showFullDescription ? 'line-clamp-6' : ''}`}>
-                  {game.description_raw}
-                </p>
-                {!showFullDescription && game.description_raw.length > 300 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"></div>
+                <div 
+                  ref={descriptionRef}
+                  className={`leading-relaxed ${!showFullDescription ? 'line-clamp-6' : ''} text-gray-700`}
+                >
+                  {formatDescription(game.description_raw).map((paragraph, index) => (
+                    isTitle(paragraph) ? (
+                      <h3 key={index} className="text-lg font-bold mb-2 mt-4 first:mt-0 text-black">
+                        {paragraph}
+                      </h3>
+                    ) : (
+                      <p key={index} className="mb-4 last:mb-0 text-justify">
+                        {paragraph}
+                      </p>
+                    )
+                  ))}
+                </div>
+                {!showFullDescription && isDescriptionClamped && (
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t pointer-events-none from-white to-transparent"></div>
                 )}
               </div>
-              {game.description_raw.length > 300 && (
+              {isDescriptionClamped && (
                 <button
                   onClick={() => setShowFullDescription(!showFullDescription)}
-                  className="mt-2 text-blue-500 hover:text-blue-700 font-semibold transition"
+                  className="mt-2 font-semibold text-blue-600 hover:text-blue-700"
                 >
                   {showFullDescription ? 'See Less' : 'See More'}
                 </button>
               )}
             </div>
           )}
+          
+          <div>
+
+          </div>
 
           {/* Game Stats */}
-          <div className="mb-8 bg-gray-100 rounded-lg p-4">
-            <h2 className="text-2xl font-bold text-black mb-4">Game Details</h2>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="mb-8 rounded-lg p-2 sm:p-4 shadow-lg bg-gray-100">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-black">Ratings</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
               {game.rating && (
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">USER RATING</p>
-                  <p className="text-2xl font-bold text-yellow-500">{game.rating.toFixed(1)}/5</p>
-                </div>
-              )}
-              {game.metacritic && (
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">METACRITIC</p>
-                  <p className="text-2xl font-bold text-blue-500">{game.metacritic}</p>
-                </div>
-              )}
-              {game.playtime && (
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">AVG PLAYTIME</p>
-                  <p className="text-2xl font-bold text-green-500">{game.playtime}h</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-white">
+                  <div className="h-14 w-14 sm:h-20 sm:w-20 mx-auto flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                    <svg className="w-5 h-5 sm:w-8 sm:h-8 text-yellow-400 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <p className="text-2xl sm:text-4xl font-bold text-gray-800">{game.rating.toFixed(1)}/5</p>
+                  </div>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">USER RATING</p>
                 </div>
               )}
               {game.reviews_count && (
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">REVIEWS</p>
-                  <p className="text-2xl font-bold text-purple-500">{game.reviews_count}</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-white">
+                  <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3">
+                    <p className="text-2xl sm:text-4xl text-center font-bold text-gray-800">{game.reviews_count}</p>
+                  </div>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">REVIEWS</p>
+                </div>
+              )}
+              {game.metacritic ? (
+                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-white">
+                  <div style={{ backgroundColor: MeteColor(game.metacritic) }} className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3">
+                    <p className="text-2xl sm:text-3xl text-center font-bold text-white">{game.metacritic}</p>
+                  </div>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">METACRITIC</p>
+                </div>
+              ) : (
+                <div className="p-2 sm:p-3 rounded-lg col-span-2 sm:col-span-1 bg-white">
+                  <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-xl mx-auto flex items-center justify-center mb-2 sm:mb-3 bg-gray-200">
+                    <p className="text-lg sm:text-xl text-center font-bold text-gray-400">N/A</p>
+                  </div>
+                  <p className="text-xs sm:text-lg text-center font-semibold mb-1 text-gray-500">METACRITIC</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        <div className="col-span-1 bg-white rounded-xl shadow-xl px-5 py-5 self-start">
+        <div className="col-span-1 lg:self-start space-y-4">
+          <div className="rounded-xl shadow-xl px-4 sm:px-5 py-4 sm:py-5 bg-white border border-gray-100">
           {/* Game Title */}
-          <h1 className="text-3xl font-extrabold text-black mb-4">{game.name}</h1>
-          <button className="bg-gray-900 w-full cursor-pointer py-2 text-white rounded-lg shadow-lg mt-2 mb-4">
-            Add to Favorites
-          </button>
-          <div className="grid grid-cols-3 bg-white gap-2 rounded-lg border border-gray-200 self-start">
-            <div className="col-span-1 ml-3 my-2 flex items-start justify-start">
-              {renderEsrbIcon(game.esrb_rating?.name)}
-            </div>
-            <div className="col-span-2 mr-3 my-2">
-              {game.esrb_rating && (
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                  <span className="text-sm font-bold">
-                    {game.esrb_rating.name}
-                  </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold mb-3 sm:mb-4 text-black">{game.name}</h1>
+            <button className="bg-gray-900 w-full cursor-pointer py-2 text-white rounded-lg shadow-lg mt-2 mb-4">
+              Add to Favorites
+            </button>
+            <div className="grid grid-cols-3 gap-2 rounded-lg border bg-white border-gray-200">
+              <div className="col-span-1 ml-3 my-2 flex items-start justify-start">
+                {renderEsrbIcon(game.esrb_rating?.name)}
+              </div>
+              <div className="col-span-2 mr-3 my-2">
+                {game.esrb_rating && (
+                  <div className="bg-white flex items-center justify-between py-2 border-b border-gray-200">
+                    <span className="text-sm font-bold text-black">
+                      {game.esrb_rating.name}
+                    </span>
+                  </div>
+                )}
+                <div className="pt-2">
+                  <p className="text-sm text-justify text-gray-700">
+                    {game.esrb_rating?.name ? esrbLabel(game.esrb_rating.name) : 'No rating available'}
+                  </p>
                 </div>
-              )}
-              <div className="pt-2">
-                <p className="text-sm text-gray-700 text-justify">
-                  {game.esrb_rating?.name ? esrbLabel(game.esrb_rating.name) : 'No rating available'}
-                </p>
               </div>
             </div>
-          </div>
-          <div className="my-3 ">
-            {/* Metadata */}
-            <div className="flex flex-col gap-1 text-gray-700">
-              {game.developers?.length > 0 && (
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="font-semibold text-sm">Developers</span>
-                  {game.developers.map((dev) => (
-                    <span className="text-sm"key={dev.id}>
-                      {dev.name}
+            <div className="my-3 ">
+              {/* Metadata */}
+              <div className="flex flex-col gap-1 text-gray-700">
+                {game.developers?.length > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                    <span className="font-semibold text-sm text-black">Developer</span>
+                    <PersonTooltip items={game.developers} firstName={game.developers[0].name} />
+                  </div>
+                )}
+                {game.publishers?.length > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                    <span className="font-semibold text-sm">Publisher</span>
+                    <PersonTooltip items={game.publishers} firstName={game.publishers[0].name} />
+                  </div>
+                )}
+                {game.released && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                    <span className="font-semibold text-sm">Released</span> 
+                    <span className="text-sm">
+                      {formatReleaseDate(game.released)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Genres */}
+            {game.genres?.length > 0 && (
+              <div className="my-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">Genres</h2>
+                <div className="flex flex-wrap gap-2">
+                  {game.genres.map((genre) => (
+                    <span
+                      key={genre.id}
+                      className="bg-gray-200 px-3 py-1 rounded text-sm"
+                    >
+                      {genre.name}
                     </span>
                   ))}
                 </div>
-              )}
-              {game.publishers?.length > 0 && (
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="font-semibold text-sm">Publisher</span>
-                  <span className="text-sm">
-                    {game.publishers[0].name}
-                  </span>
+              </div>
+            )}
+
+            {/* Platforms */}
+            {game.parent_platforms?.length > 0 && (
+              <div className="mb-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">Platforms</h2>
+                <div className="flex flex-wrap gap-2">
+                  {game.parent_platforms.map(({ platform }) => (
+                    <span
+                      key={platform.id}
+                      className="bg-gray-100 px-3 py-1 rounded text-sm"
+                    >
+                      {platform.name === 'Apple Macintosh' ? 'Mac' : platform.name}
+                    </span>
+                  ))}
                 </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-lg sm:text-xl font-bold col-span-2">
+              <p>Where to Play</p>
+            </div>
+            {/* Store Links */}
+            {game.stores?.length > 0 && game.stores.map((storeItem) => {
+              let storeUrl = '';
+              const storeName = storeItem.store.name.toLowerCase();
+              const platformSlug = mapStoreToPlatformSlug(storeItem.store.slug || storeItem.store.name);
+              const icon = iconForPlatform(platformSlug);
+              
+              if (storeName.includes('steam')) {
+                storeUrl = `https://store.steampowered.com/app/${game.id}/${game.name}`;
+              } else if (storeName.includes('epic')) {
+                storeUrl = `https://www.epicgames.com/games/${game.slug}`;
+              } else if (storeName.includes('playstation') || storeName.includes('psn')) {
+                storeUrl = `https://www.playstation.com/en-us/games/${game.slug}/`;
+              } else if (storeName.includes('xbox')) {
+                storeUrl = `https://www.xbox.com/en-US/games/${game.slug}`;
+              } else if (storeName.includes('nintendo')) {
+                storeUrl = `https://www.nintendo.com`;
+              } else if (storeName.includes('gog')) {
+                storeUrl = `https://www.gog.com/en/games?query=${encodeURIComponent(game.name)}`;
+              } else {
+                const domain = storeItem.store.domain || '';
+                storeUrl = domain.startsWith('http') ? domain : domain ? `https://${domain}` : 'https://rawg.io';
+              }
+
+              return (
+                <a
+                  key={storeItem.store.id}
+                  href={storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full bg-gray-900 hover:bg-gray-800 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                >
+                  {icon && <span className="text-white">{icon}</span>}
+                  <span>{storeItem.store.name}</span>
+                </a>
+              );
+            })}
+
+            <div className='col-span-2'>
+              <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold">
+                <p>Know more</p>
+              </div>
+              {/* Reddit Link */}
+              {game.reddit_url && (
+                <a
+                  href={game.reddit_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition mb-3"
+                >
+                  Discuss on Reddit
+                </a>
               )}
-              {game.released && (
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                  <span className="font-semibold text-sm">Released</span> 
-                  <span className="text-sm">
-                    {formatReleaseDate(game.released)}
-                  </span>
-                </div>
+
+              {/* Official Website */}
+              {game.website && (
+                <a
+                  href={game.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                >
+                  Official Website
+                </a>
               )}
             </div>
           </div>
-          {/* Genres */}
-          {game.genres?.length > 0 && (
-            <div className="my-4">
-              <h2 className="text-2xl font-bold text-black mb-2">Genres</h2>
-              <div className="flex flex-wrap gap-2">
-                {game.genres.map((genre) => (
-                  <span
-                    key={genre.id}
-                    className="bg-gray-200 px-3 py-1 rounded text-sm"
-                  >
-                    {genre.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Platforms */}
-          {game.parent_platforms?.length > 0 && (
-            <div className="mb-3">
-              <h2 className="text-2xl font-bold text-black mb-2">Platforms</h2>
-              <div className="flex flex-wrap gap-2">
-                {game.parent_platforms.map(({ platform }) => (
-                  <span
-                    key={platform.id}
-                    className="bg-gray-100 px-3 py-1 rounded text-sm"
-                  >
-                    {platform.name === 'Apple Macintosh' ? 'Mac' : platform.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </main>
       <BottomNav />
+      <Footer />
     </>
   );
 }

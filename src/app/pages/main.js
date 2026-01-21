@@ -5,6 +5,7 @@ import GameCard from '@/components/Gamecard';
 import Navbar from '@/components/navbar';
 import { getPopularGames, searchGames } from '@/lib/rawg';
 import BottomNav from '@/components/bottomNav';
+import Footer from '@/components/footer';
 
 export default function Home() {
   const [games, setGames] = useState([]);
@@ -62,13 +63,13 @@ export default function Home() {
           mobileMenuOpen={mobileMenuOpen}
         />
       </header>
-      <main className="max-w-7xl min-h-screen mx-auto bg-gray-50 px-3 sm:px-6 lg:px-8 pt-24">
+      <main className="bg-white max-w-7xl min-h-screen mx-auto bg-gray-50 px-3 sm:px-6 lg:px-8 pt-24 pb-19">
       <div>
         <div>
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-12">
-              <p className="text-xl text-gray-500">Loading games...</p>
+            <div className="max-w-7xl text-center py-12">
+              <p className="mx-auto text-xl text-gray-500">Loading games...</p>
             </div>
           )}
 
@@ -91,6 +92,7 @@ export default function Home() {
       </div>
       </main>
       <BottomNav />
+      <Footer />
     </>
   );
 }
