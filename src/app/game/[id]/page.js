@@ -284,7 +284,7 @@ export default function GameDetailPage() {
               {/* Previous Arrow */}
               <button
                 onClick={() => setCurrentPage((prev) => prev === 0 ? totalPages - 1 : prev - 1)}
-                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
+                className="hidden sm:flex flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
                 aria-label="Previous page"
               >
                 <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -292,33 +292,36 @@ export default function GameDetailPage() {
                 </svg>
               </button>
 
-              {/* Thumbnails */}
-              <div className="flex gap-1 sm:gap-2">
-                {visibleScreenshots.map((screenshot, idx) => {
-                  const actualIndex = startIndex + idx;
-                  return (
-                  <button
-                    key={screenshot.id}
-                    onClick={() => setCurrentImageIndex(actualIndex)}
-                    className={`flex-shrink-0 w-16 h-10 sm:w-24 sm:h-16 rounded-lg overflow-hidden border-2 transition ${
-                      currentImageIndex === actualIndex
-                        ? 'border-blue-500 shadow-lg' 
-                        : 'border-gray-600 hover:border-gray-500'
-                    }`}
-                  >
-                    <img
-                      src={screenshot.image}
-                      alt={`Screenshot ${actualIndex + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                );})}
+              <div className='overflow-x-auto'>
+                {/* Thumbnails */}
+                <div className="flex gap-1 sm:gap-2">
+                  {visibleScreenshots.map((screenshot, idx) => {
+                    const actualIndex = startIndex + idx;
+                    return (
+                    <button
+                      key={screenshot.id}
+                      onClick={() => setCurrentImageIndex(actualIndex)}
+                      className={`flex-shrink-0 w-30 h-18 sm:w-24 sm:h-16 rounded-lg overflow-hidden border-2 transition ${
+                        currentImageIndex === actualIndex
+                          ? 'border-blue-500 shadow-lg' 
+                          : 'border-gray-600 hover:border-gray-500'
+                      }`}
+                    >
+                      <img
+                        src={screenshot.image}
+                        alt={`Screenshot ${actualIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  );})}
+                </div>
               </div>
+
 
               {/* Next Arrow */}
               <button
                 onClick={() => setCurrentPage((prev) => prev === totalPages - 1 ? 0 : prev + 1)}
-                className="flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
+                className="hidden sm:flex flex-shrink-0 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition"
                 aria-label="Next page"
               >
                 <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
