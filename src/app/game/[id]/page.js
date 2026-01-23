@@ -417,10 +417,78 @@ export default function GameDetailPage() {
         <div className="col-span-1 lg:self-start space-y-4">
           <div className="rounded-xl shadow-xl px-4 sm:px-5 py-4 sm:py-5 bg-gray-800 border border-gray-700">
           {/* Game Title */}
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-3 sm:mb-4 text-white">{game.name}</h1>
-            <button className="bg-white w-full cursor-pointer py-2 text-black rounded-lg shadow-lg mt-2 mb-4">
-              Add to Favorites
-            </button>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white border-b border-gray-200 pb-5">{game.name}</h1>
+            <div className="grid grid-cols-2 gap-3 py-4">
+            <div className="text-lg sm:text-xl font-bold col-span-2 text-white">
+              <p>Where to Play</p>
+            </div>
+            {/* Store Links */}
+            {game.stores?.length > 0 && game.stores.map((storeItem) => {
+              let storeUrl = '';
+              const storeName = storeItem.store.name.toLowerCase();
+              const platformSlug = mapStoreToPlatformSlug(storeItem.store.slug || storeItem.store.name);
+              const icon = iconForPlatform(platformSlug);
+              
+              if (storeName.includes('steam')) {
+                storeUrl = `https://store.steampowered.com/app/${game.id}/${game.name}`;
+              } else if (storeName.includes('epic')) {
+                storeUrl = `https://www.epicgames.com/games/${game.slug}`;
+              } else if (storeName.includes('playstation') || storeName.includes('psn')) {
+                storeUrl = `https://www.playstation.com/en-us/games/${game.slug}/`;
+              } else if (storeName.includes('xbox')) {
+                storeUrl = `https://www.xbox.com/en-US/games/${game.slug}`;
+              } else if (storeName.includes('nintendo')) {
+                storeUrl = `https://www.nintendo.com`;
+              } else if (storeName.includes('gog')) {
+                storeUrl = `https://www.gog.com/en/games?query=${encodeURIComponent(game.name)}`;
+              } else {
+                const domain = storeItem.store.domain || '';
+                storeUrl = domain.startsWith('http') ? domain : domain ? `https://${domain}` : 'https://rawg.io';
+              }
+
+              return (
+                <a
+                  key={storeItem.store.id}
+                  href={storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full bg-gray-700 hover:bg-gray-500 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                >
+                  {icon && <span className="text-white">{icon}</span>}
+                  <span>{storeItem.store.name.replace(/store/i, '').trim()}</span>
+                </a>
+              );
+            })}
+
+            <div className='col-span-2'>
+              <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold text-white">
+                <p>Know more</p>
+              </div>
+              {/* Reddit Link */}
+              {game.reddit_url && (
+                <a
+                  href={game.reddit_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition mb-3"
+                >
+                  Discuss on Reddit
+                </a>
+              )}
+
+              {/* Official Website */}
+              {game.website && (
+                <a
+                  href={game.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                >
+                  Official Website
+                </a>
+              )}
+            </div>
+          </div>
             <div className="grid grid-cols-3 gap-2 rounded-lg border bg-gray-700 border-gray-600">
               <div className="col-span-1 ml-3 my-2 flex items-start justify-start">
                 {renderEsrbIcon(game.esrb_rating?.name)}
@@ -498,78 +566,6 @@ export default function GameDetailPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-lg sm:text-xl font-bold col-span-2 text-white">
-              <p>Where to Play</p>
-            </div>
-            {/* Store Links */}
-            {game.stores?.length > 0 && game.stores.map((storeItem) => {
-              let storeUrl = '';
-              const storeName = storeItem.store.name.toLowerCase();
-              const platformSlug = mapStoreToPlatformSlug(storeItem.store.slug || storeItem.store.name);
-              const icon = iconForPlatform(platformSlug);
-              
-              if (storeName.includes('steam')) {
-                storeUrl = `https://store.steampowered.com/app/${game.id}/${game.name}`;
-              } else if (storeName.includes('epic')) {
-                storeUrl = `https://www.epicgames.com/games/${game.slug}`;
-              } else if (storeName.includes('playstation') || storeName.includes('psn')) {
-                storeUrl = `https://www.playstation.com/en-us/games/${game.slug}/`;
-              } else if (storeName.includes('xbox')) {
-                storeUrl = `https://www.xbox.com/en-US/games/${game.slug}`;
-              } else if (storeName.includes('nintendo')) {
-                storeUrl = `https://www.nintendo.com`;
-              } else if (storeName.includes('gog')) {
-                storeUrl = `https://www.gog.com/en/games?query=${encodeURIComponent(game.name)}`;
-              } else {
-                const domain = storeItem.store.domain || '';
-                storeUrl = domain.startsWith('http') ? domain : domain ? `https://${domain}` : 'https://rawg.io';
-              }
-
-              return (
-                <a
-                  key={storeItem.store.id}
-                  href={storeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-gray-700 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
-                >
-                  {icon && <span className="text-white">{icon}</span>}
-                  <span>{storeItem.store.name}</span>
-                </a>
-              );
-            })}
-
-            <div className='col-span-2'>
-              <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold text-white">
-                <p>Know more</p>
-              </div>
-              {/* Reddit Link */}
-              {game.reddit_url && (
-                <a
-                  href={game.reddit_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition mb-3"
-                >
-                  Discuss on Reddit
-                </a>
-              )}
-
-              {/* Official Website */}
-              {game.website && (
-                <a
-                  href={game.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
-                >
-                  Official Website
-                </a>
-              )}
-            </div>
           </div>
         </div>
       </main>
