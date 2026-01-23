@@ -38,3 +38,18 @@ body {
 .scrollbar-hide::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
+.thin-scrollbar {
+  scrollbar-width: thin;           /* Firefox */
+  scrollbar-color: #4b5563 #1f2937; /* Thumb and track color */
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;                      /* Chrome, Safari, Opera */
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;             /* Thumb color */
+  border-radius: 4px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937;             /* Track color */
+}
