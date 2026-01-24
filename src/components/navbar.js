@@ -97,11 +97,11 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                     ))}
                     <div
                       className="sticky bottom-0 bg-gray-900 flex items-center justify-center px-4 py-3 hover:bg-blue-700 cursor-pointer text-base font-semibold text-blue-400"
-                      onClick={() => {
-                        setSuggestions([]);
-                        setShowMobileOverlay(false);
-                        router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
-                      }}
+                        onClick={() => {
+                          setSuggestions([]);
+                          setShowMobileOverlay(false);
+                          handleSearch({ preventDefault: () => {} });
+                        }}
                     >
                       See all results
                     </div>
@@ -162,11 +162,11 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                     </div>
                     <div
                       className="bg-gray-900 flex items-center justify-center px-4 py-4 hover:bg-blue-700 cursor-pointer text-base font-semibold text-blue-400 border-t border-gray-700"
-                      onClick={() => {
-                        setSuggestions([]);
-                        setShowMobileOverlay(false);
-                        router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
-                      }}
+                        onClick={() => {
+                          setSuggestions([]);
+                          setShowMobileOverlay(false);
+                          handleSearch({ preventDefault: () => {} });
+                        }}
                     >
                       See all results
                     </div>

@@ -12,6 +12,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   console.log('API Key:', process.env.NEXT_PUBLIC_RAWG_API_KEY);
   console.log('Games:', games);
@@ -19,14 +21,19 @@ export default function Home() {
 
   // Load popular games on mount
   useEffect(() => {
-    loadPopularGames();
+    loadPopularGames(1);
   }, []);
 
   async function loadPopularGames() {
     setLoading(true);
     try {
-      const data = await getPopularGames();
-      setGames(data. results);
+      const data = await getPopularGames(page);
+      if (page === 1) {
+        setGames(data.results);
+      } else {
+        setGames(prev => [...prev, ...data.results]);
+      }
+      setHasMore(data.results && data.results.length > 0);
     } catch (error) {
       console.error('Error loading games:', error);
     } finally {
@@ -36,17 +43,38 @@ export default function Home() {
 
   async function handleSearch(e) {
     e.preventDefault();
-    if (! searchQuery.trim()) {
-      loadPopularGames();
+    setPage(1);
+    if (!searchQuery.trim()) {
+      loadPopularGames(1);
       return;
     }
-
     setLoading(true);
     try {
-      const data = await searchGames(searchQuery);
+      const data = await searchGames(searchQuery, 1);
       setGames(data.results);
+      setHasMore(data.results && data.results.length > 0);
     } catch (error) {
       console.error('Error searching games:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSeeMore() {
+    const nextPage = page + 1;
+    setLoading(true);
+    try {
+      let data;
+      if (!searchQuery.trim()) {
+        data = await getPopularGames(nextPage);
+      } else {
+        data = await searchGames(searchQuery, nextPage);
+      }
+      setGames(prev => [...prev, ...data.results]);
+      setPage(nextPage);
+      setHasMore(data.results && data.results.length > 0);
+    } catch (error) {
+      console.error('Error loading more games:', error);
     } finally {
       setLoading(false);
     }
@@ -75,11 +103,24 @@ export default function Home() {
 
           {/* Games Grid */}
           {!loading && games.length > 0 && (
-            <div className="bg-gray-900 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {games.map((game) => (
-                <GameCard key={game.id} game={game} />
-              ))}
-            </div>
+            <>
+              <div className="bg-gray-900 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {games.map((game) => (
+                  <GameCard key={game.id} game={game} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    onClick={handleSeeMore}
+                    disabled={loading}
+                  >
+                    {loading ? 'Loading...' : 'See more'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* No Results */}
