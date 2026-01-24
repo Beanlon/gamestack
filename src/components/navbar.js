@@ -8,15 +8,24 @@ import { useRouter } from 'next/navigation';
 
 
 export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobileMenuOpen, setMobileMenuOpen }) {
+    // Shared handler for clearing search and suggestions
+    const clearSearchAndSuggestions = (extraAction) => {
+      setSearchQuery('');
+      setSuggestions([]);
+      setShowMobileOverlay(false);
+      if (typeof extraAction === 'function') extraAction();
+    };
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showMobileOverlay, setShowMobileOverlay] = useState(false);
+  const [showSuggestionsPanel, setShowSuggestionsPanel] = useState(false);
   const router = useRouter();
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (!searchQuery) {
       setSuggestions([]);
+      setShowSuggestionsPanel(false);
       return;
     }
     setLoadingSuggestions(true);
@@ -66,6 +75,7 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                    onChange={(e) => setSearchQuery(e.target.value)}
                    onFocus={() => {
                      if (window.innerWidth < 640) setShowMobileOverlay(true);
+                     else setShowSuggestionsPanel(true);
                    }}
                    onKeyDown={(e) => {
                      if (e.key === 'Enter') {
@@ -77,7 +87,7 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                    className="bg-gray-700 text-white border-gray-600 focus:ring-blue-400 placeholder:text-gray-400 rounded-lg shadow-sm w-20 sm:w-48 md:w-40 lg:w-[200px] pl-8 sm:pl-9 pr-2 sm:pr-3 py-1.5 sm:py-2 text-xs sm:text-sm border focus:outline-none focus:ring-2"
                  />
                 {/* Desktop/Tablet Suggestions Panel */}
-                {searchQuery && !showMobileOverlay && (
+                {searchQuery && !showMobileOverlay && showSuggestionsPanel && (
                   <div className="absolute left-0 right-0 mt-5 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-80 min-w-[320px] w-[350px] overflow-y-auto scrollbar-hide thin-scrollbar">
                     {suggestions.length > 0 ? (
                       suggestions.map(game => (
@@ -85,10 +95,8 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                           key={game.id}
                           className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 cursor-pointer text-base border-b border-gray-700"
                           onClick={() => {
-                            setSearchQuery('');
-                            setSuggestions([]);
-                            setShowMobileOverlay(false);
-                            router.push(`/game/${game.id}`);
+                            setShowSuggestionsPanel(false);
+                            clearSearchAndSuggestions(() => router.push(`/game/${game.id}`));
                           }}
                         >
                           {game.background_image && (
@@ -107,6 +115,7 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                     <div
                       className="sticky bottom-0 bg-gray-900 flex items-center justify-center px-4 py-3 hover:bg-blue-700 cursor-pointer text-base font-semibold text-blue-400"
                         onClick={() => {
+                          setShowSuggestionsPanel(false);
                           setSuggestions([]);
                           setShowMobileOverlay(false);
                           handleSearch({ preventDefault: () => {} });
@@ -172,9 +181,7 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                     <div
                       className="bg-gray-900 flex items-center justify-center px-4 py-4 hover:bg-blue-700 cursor-pointer text-base font-semibold text-blue-400 border-t border-gray-700"
                         onClick={() => {
-                          setSuggestions([]);
-                          setShowMobileOverlay(false);
-                          handleSearch({ preventDefault: () => {} });
+                          clearSearchAndSuggestions(() => handleSearch({ preventDefault: () => {} }));
                         }}
                     >
                       See all results

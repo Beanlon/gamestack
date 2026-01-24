@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import EpicLogo from '@/images/Epic-Games-Logo--Streamline-Logos.svg';
 import GogLogo from '@/images/Gog-Com-Logo--Streamline-Logos (1).svg';
+import GooglePlayLogo from '@/images/Google-Play-Logo--Streamline-Logos.svg';
 
 export const platformIcons = {
   pc: (
@@ -44,6 +45,9 @@ export const platformIcons = {
   gog: (
     <img src={GogLogo.src || GogLogo} alt="GOG" className="w-4 h-4" />
   ),
+  googleplay: (
+    <img src={GooglePlayLogo.src || GooglePlayLogo} alt="Google Play" className="w-4 h-4" />
+  ),
 };
 
 export const normalizePlatform = (slug = '') => {
@@ -51,12 +55,13 @@ export const normalizePlatform = (slug = '') => {
   if (lower.startsWith('playstation')) return 'playstation';
   if (lower.startsWith('xbox')) return 'xbox';
   if (lower.startsWith('nintendo')) return 'nintendo';
-  if (lower === 'mac' || lower === 'macos') return 'mac';
+  if (lower === 'mac' || lower === 'macos') return 'ios';
   if (lower === 'ios' || lower === 'iphone' || lower === 'ipad') return 'ios';
   if (lower === 'linux' || lower === 'pc') return 'pc';
   if (lower === 'steam') return 'steam';
   if (lower === 'epic' || lower.includes('epic')) return 'epic';
   if (lower === 'gog') return 'gog';
+  if (lower === 'google-play' || lower === 'android') return 'googleplay';
   return lower;
 };
 
