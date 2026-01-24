@@ -21,7 +21,12 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
     }
     setLoadingSuggestions(true);
     searchGames(searchQuery, 1)
-      .then(data => setSuggestions(data.results || []))
+      .then(data => {
+        const results = (data.results || []).filter(game =>
+          game.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+        );
+        setSuggestions(results);
+      })
       .catch(() => setSuggestions([]))
       .finally(() => setLoadingSuggestions(false));
   }, [searchQuery]);
@@ -72,29 +77,33 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                    className="bg-gray-700 text-white border-gray-600 focus:ring-blue-400 placeholder:text-gray-400 rounded-lg shadow-sm w-20 sm:w-48 md:w-40 lg:w-[200px] pl-8 sm:pl-9 pr-2 sm:pr-3 py-1.5 sm:py-2 text-xs sm:text-sm border focus:outline-none focus:ring-2"
                  />
                 {/* Desktop/Tablet Suggestions Panel */}
-                {searchQuery && suggestions.length > 0 && !showMobileOverlay && (
+                {searchQuery && !showMobileOverlay && (
                   <div className="absolute left-0 right-0 mt-5 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 max-h-80 min-w-[320px] w-[350px] overflow-y-auto scrollbar-hide thin-scrollbar">
-                    {suggestions.map(game => (
-                      <div
-                        key={game.id}
-                        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 cursor-pointer text-base border-b border-gray-700"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSuggestions([]);
-                          setShowMobileOverlay(false);
-                          router.push(`/game/${game.id}`);
-                        }}
-                      >
-                        {game.background_image && (
-                          <img 
-                            src={game.background_image}
-                            alt={game.name}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                        )}
-                        <span className="whitespace-nowrap truncate max-w-[200px]">{game.name}</span>
-                      </div>
-                    ))}
+                    {suggestions.length > 0 ? (
+                      suggestions.map(game => (
+                        <div
+                          key={game.id}
+                          className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 cursor-pointer text-base border-b border-gray-700"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSuggestions([]);
+                            setShowMobileOverlay(false);
+                            router.push(`/game/${game.id}`);
+                          }}
+                        >
+                          {game.background_image && (
+                            <img 
+                              src={game.background_image}
+                              alt={game.name}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          )}
+                          <span className="whitespace-nowrap truncate max-w-[200px]">{game.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      !loadingSuggestions && <div className="mb-6 text-center text-gray-400 mt-8">No games found</div>
+                    )}
                     <div
                       className="sticky bottom-0 bg-gray-900 flex items-center justify-center px-4 py-3 hover:bg-blue-700 cursor-pointer text-base font-semibold text-blue-400"
                         onClick={() => {
@@ -136,9 +145,9 @@ export default function Navbar({ searchQuery, setSearchQuery, handleSearch, mobi
                     </div>
                     <div className="flex-1 overflow-y-auto thin-scrollbar px-2 py-4">
                       {suggestions.length === 0 && !loadingSuggestions && (
-                        <div className="text-center text-gray-400 mt-8">No results found.</div>
+                        <div className="text-center text-gray-400 mt-8">No games found.</div>
                       )}
-                      {suggestions.map(game => (
+                      {suggestions.length > 0 && suggestions.map(game => (
                         <div
                           key={game.id}
                           className="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 cursor-pointer text-base border-b border-gray-700"
