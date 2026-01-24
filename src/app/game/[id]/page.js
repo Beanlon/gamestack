@@ -422,43 +422,49 @@ export default function GameDetailPage() {
             <div className="text-lg sm:text-xl font-bold col-span-2 text-white">
               <p>Where to Play</p>
             </div>
-            {/* Store Links */}
-            {game.stores?.length > 0 && game.stores.map((storeItem) => {
-              let storeUrl = '';
-              const storeName = storeItem.store.name.toLowerCase();
-              const platformSlug = mapStoreToPlatformSlug(storeItem.store.slug || storeItem.store.name);
-              const icon = iconForPlatform(platformSlug);
-              
-              if (storeName.includes('steam')) {
-                storeUrl = `https://store.steampowered.com/app/${game.id}/${game.name}`;
-              } else if (storeName.includes('epic')) {
-                storeUrl = `https://www.epicgames.com/games/${game.slug}`;
-              } else if (storeName.includes('playstation') || storeName.includes('psn')) {
-                storeUrl = `https://www.playstation.com/en-us/games/${game.slug}/`;
-              } else if (storeName.includes('xbox')) {
-                storeUrl = `https://www.xbox.com/en-US/games/${game.slug}`;
-              } else if (storeName.includes('nintendo')) {
-                storeUrl = `https://www.nintendo.com`;
-              } else if (storeName.includes('gog')) {
-                storeUrl = `https://www.gog.com/en/games?query=${encodeURIComponent(game.name)}`;
-              } else {
-                const domain = storeItem.store.domain || '';
-                storeUrl = domain.startsWith('http') ? domain : domain ? `https://${domain}` : 'https://rawg.io';
-              }
+            {/* Store Links or No Stores Found */}
+            {game.stores?.length > 0 ? (
+              game.stores.map((storeItem) => {
+                let storeUrl = '';
+                const storeName = storeItem.store.name.toLowerCase();
+                const platformSlug = mapStoreToPlatformSlug(storeItem.store.slug || storeItem.store.name);
+                const icon = iconForPlatform(platformSlug);
 
-              return (
-                <a
-                  key={storeItem.store.id}
-                  href={storeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full bg-gray-700 hover:bg-gray-500 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
-                >
-                  {icon && <span className="text-white">{icon}</span>}
-                  <span>{storeItem.store.name.replace(/store/i, '').trim()}</span>
-                </a>
-              );
-            })}
+                if (storeName.includes('steam')) {
+                  storeUrl = `https://store.steampowered.com/app/${game.id}/${game.name}`;
+                } else if (storeName.includes('epic')) {
+                  storeUrl = `https://www.epicgames.com/games/${game.slug}`;
+                } else if (storeName.includes('playstation') || storeName.includes('psn')) {
+                  storeUrl = `https://www.playstation.com/en-us/games/${game.slug}/`;
+                } else if (storeName.includes('xbox')) {
+                  storeUrl = `https://www.xbox.com/en-US/games/${game.slug}`;
+                } else if (storeName.includes('nintendo')) {
+                  storeUrl = `https://www.nintendo.com`;
+                } else if (storeName.includes('gog')) {
+                  storeUrl = `https://www.gog.com/en/games?query=${encodeURIComponent(game.name)}`;
+                } else {
+                  const domain = storeItem.store.domain || '';
+                  storeUrl = domain.startsWith('http') ? domain : domain ? `https://${domain}` : 'https://rawg.io';
+                }
+
+                return (
+                  <a
+                    key={storeItem.store.id}
+                    href={storeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-gray-700 hover:bg-gray-500 text-white text-sm sm:text-md font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition"
+                  >
+                    {icon && <span className="text-white">{icon}</span>}
+                    <span>{storeItem.store.name.replace(/store/i, '').trim()}</span>
+                  </a>
+                );
+              })
+            ) : (
+              <div className="col-span-2 text-gray-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition">
+                No stores found
+              </div>
+            )}
 
             <div className='col-span-2'>
               <div className="pb-2 sm:pb-3 text-lg sm:text-xl font-semibold text-white">
@@ -477,7 +483,7 @@ export default function GameDetailPage() {
               )}
 
               {/* Official Website */}
-              {game.website && (
+              {game.website ? (
                 <a
                   href={game.website}
                   target="_blank"
@@ -486,6 +492,10 @@ export default function GameDetailPage() {
                 >
                   Official Website
                 </a>
+              ) : (
+                <div className="block w-full  text-gray-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-center transition">
+                  No websites found
+                </div>
               )}
             </div>
           </div>
